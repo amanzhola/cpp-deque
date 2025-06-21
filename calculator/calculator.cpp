@@ -1,88 +1,68 @@
-// В этом файле определения функций.
-// За основу возьмите решение предыдущей задачи.
+#include "calculator.h"
 #include <iostream>
 #include <string>
 #include <cmath>
-#include <unordered_set>
-
-using Number = double;
+#include <limits>
 
 bool ReadNumber(Number& result) {
-    std::cin >> result;
-    if (std::cin.fail()) {
-        std::cerr << "Error: Numeric operand expected" << std::endl;
+    if (!(std::cin >> result)) {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cerr << "Error: Numeric operand expected\n";
         return false;
     }
     return true;
 }
 
 bool RunCalculatorCycle() {
-    Number value = 0;
-    Number memory = 0;
+    Number value = 0, memory = 0;
     bool memorySet = false;
 
-    if (!ReadNumber(value)) return false;
+    if (!ReadNumber(value)) { return false;}
 
-    const std::unordered_set<char> binaryOps = {'+', '-', '*', '/', ':'};
-    const std::unordered_set<char> simpleOps = {'=', 'c', 's', 'l', 'q'};
-
-    while (true) {
-        char command;
-        std::cin >> command;
-
-        if (binaryOps.count(command)) {
-            // Обработка **
-            if (command == '*' && std::cin.peek() == '*') {
-                std::cin.get();  // consume second '*'
-                Number operand;
-                if (!ReadNumber(operand)) return false;
-                value = std::pow(value, operand);
-                continue;
-            }
-
-            // Обычные бинарные операции
-            Number operand;
-            if (!ReadNumber(operand)) return false;
-
-            switch (command) {
-                case '+': value += operand; break;
-                case '-': value -= operand; break;
-                case '*': value *= operand; break;
-                case '/': value /= operand; break;
-                case ':': value = operand; break;
-            }
+    char cmd;
+    while (std::cin >> cmd) {
+        if (cmd == '*' && std::cin.peek() == '*') {
+            std::cin.get();
+            Number x;
+            if (!ReadNumber(x)) { return false;}
+            value = std::pow(value, x);
+            continue;
         }
-        else if (simpleOps.count(command)) {
-            switch (command) {
-                case '=':
-                    std::cout << value << std::endl;
-                    break;
-                case 'c':
-                    value = 0;
-                    break;
-                case 's':
-                    memory = value;
-                    memorySet = true;
-                    break;
-                case 'l':
-                    if (!memorySet) {
-                        std::cerr << "Error: Memory is empty" << std::endl;
-                        return false;
-                    }
-                    value = memory;
-                    break;
-                case 'q':
-                    return true;
+
+        switch (cmd) {
+            case '+': case '-': case '*': case '/': case ':': {
+                Number x;
+                if (!ReadNumber(x)) { return false;}
+                switch (cmd) {
+                    case '+': value += x; break;
+                    case '-': value -= x; break;
+                    case '*': value *= x; break;
+                    case '/': value = (x == 0 ? std::numeric_limits<Number>::infinity() : value / x); break;
+                    case ':': value = x; break;
+                }
+                break;
             }
-        }
-        else {
-            // Нераспознанный токен
-            std::string token(1, command);
-            while (std::isalpha(std::cin.peek())) {
-                token += std::cin.get();
+            case '=': std::cout << value << '\n'; break;
+            case 'c': value = 0; break;
+            case 's': memory = value; memorySet = true; break;
+            case 'l':
+                if (!memorySet) {
+                    std::cerr << "Error: Memory is empty\n";
+                    return false;
+                }
+                value = memory;
+                break;
+            case 'q': return true;
+            default: {
+                std::string token(1, cmd);
+                while (std::isalpha(std::cin.peek()))
+                    token += std::cin.get();
+                std::cerr << "Error: Unknown token " << token << '\n';
+                return false;
             }
-            std::cerr << "Error: Unknown token " << token << std::endl;
-            return false;
         }
     }
+
+    return true;
 }
