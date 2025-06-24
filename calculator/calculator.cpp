@@ -1,89 +1,63 @@
 #include "calculator.h"
-#include <iostream>
-#include <string>
-#include <cmath>
-#include <limits>
 
 bool ReadNumber(Number& result) {
-    if (!(std::cin >> result)) {
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::cerr << "Error: Numeric operand expected\n";
-        return false;
-    }
+  if (std::cin >> result) {
     return true;
+  }
+
+  std::cin.clear();
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  std::cerr << "Error: Numeric operand expected\n";
+  return false;
+}
+
+bool Multiply(Number& value, Number&, bool&) {
+  if (std::cin.peek() == '*') {
+    std::cin.get();
+    return BinaryOp(value, [](Number& a, Number b) { a = std::pow(a, b); });
+  }
+  return BinaryOp(value, [](Number& a, Number b) { a *= b; });
+}
+
+bool Load(Number& value, Number& memory, bool& memory_set) {
+  if (!memory_set) {
+    std::cerr << "Error: Memory is empty\n";
+    return false;
+  }
+
+  return UnaryOp(value, memory, memory_set, [](Number& a, Number& b, bool&) { a = b; });
+}
+
+bool Quit(Number&, Number&, bool&) {
+  return false;
 }
 
 bool RunCalculatorCycle() {
-    Number value = 0.0;
-    Number memory = 0.0;
-    bool memorySet = false;
-    char cmd = '\0';
+  Number value = 0.0;
+  Number memory = 0.0;
+  bool memory_set = false;
+  char command = '\0';
 
-    if (!ReadNumber(value)) {
-        return false;
+  if (!ReadNumber(value)) {
+    return false;
+  }
+
+  while (std::cin >> command) {
+    Handler handler = GetHandlers()[static_cast<unsigned char>(command)];
+
+    if (!handler) {
+      std::string token(1, command);
+      while (std::isalpha(std::cin.peek())) {
+        token += static_cast<char>(std::cin.get());
+      }
+      std::cerr << "Error: Unknown token " << token << '\n';
+      return false;
     }
 
-    while (std::cin >> cmd) {
-        if (cmd == '*' && std::cin.peek() == '*') {
-            std::cin.get();
-            Number x = 0.0;
-            if (!ReadNumber(x)) {
-                return false;
-            }
-            value = std::pow(value, x);
-            continue;
-        }
-
-        switch (cmd) {
-            case '+': case '-': case '*': case '/': case ':': {
-                Number x = 0.0;
-                if (!ReadNumber(x)) {
-                    return false;
-                }
-                switch (cmd) {
-                    case '+': { value += x; break; }
-                    case '-': { value -= x; break; }
-                    case '*': { value *= x; break; }
-                    case '/': { value = (x == 0 ? std::numeric_limits<Number>::infinity() : value / x); break; }
-                    case ':': { value = x; break; }
-                }
-                break;
-            }
-            case '=': {
-                std::cout << value << '\n';
-                break;
-            }
-            case 'c': {
-                value = 0.0;
-                break;
-            }
-            case 's': {
-                memory = value;
-                memorySet = true;
-                break;
-            }
-            case 'l': {
-                if (!memorySet) {
-                    std::cerr << "Error: Memory is empty\n";
-                    return false;
-                }
-                value = memory;
-                break;
-            }
-            case 'q': {
-                return true;
-            }
-            default: {
-                std::string token(1, cmd);
-                while (std::isalpha(std::cin.peek())) {
-                    token += std::cin.get();
-                }
-                std::cerr << "Error: Unknown token " << token << '\n';
-                return false;
-            }
-        }
+    if (!handler(value, memory, memory_set)) {
+      return false;
     }
+  }
 
-    return true;
+  return true;
 }
