@@ -1,63 +1,32 @@
 #include "calculator.h"
+#include <cmath>
 
-bool ReadNumber(Number& result) {
-  if (std::cin >> result) {
-    return true;
-  }
+Calculator::Calculator() : number_(0.0) {}
 
-  std::cin.clear();
-  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-  std::cerr << "Error: Numeric operand expected\n";
-  return false;
+void Calculator::Set(double num) {
+    number_ = num;
 }
 
-bool Multiply(Number& value, Number&, bool&) {
-  if (std::cin.peek() == '*') {
-    std::cin.get();
-    return BinaryOp(value, [](Number& a, Number b) { a = std::pow(a, b); });
-  }
-  return BinaryOp(value, [](Number& a, Number b) { a *= b; });
+double Calculator::GetNumber() const {
+    return number_;
 }
 
-bool Load(Number& value, Number& memory, bool& memory_set) {
-  if (!memory_set) {
-    std::cerr << "Error: Memory is empty\n";
-    return false;
-  }
-
-  return UnaryOp(value, memory, memory_set, [](Number& a, Number& b, bool&) { a = b; });
+void Calculator::Add(double num) {
+    number_ += num;
 }
 
-bool Quit(Number&, Number&, bool&) {
-  return false;
+void Calculator::Sub(double num) {
+    number_ -= num;
 }
 
-bool RunCalculatorCycle() {
-  Number value = 0.0;
-  Number memory = 0.0;
-  bool memory_set = false;
-  char command = '\0';
+void Calculator::Mul(double num) {
+    number_ *= num;
+}
 
-  if (!ReadNumber(value)) {
-    return false;
-  }
+void Calculator::Div(double num) {
+    number_ /= num;
+}
 
-  while (std::cin >> command) {
-    Handler handler = GetHandlers()[static_cast<unsigned char>(command)];
-
-    if (!handler) {
-      std::string token(1, command);
-      while (std::isalpha(std::cin.peek())) {
-        token += static_cast<char>(std::cin.get());
-      }
-      std::cerr << "Error: Unknown token " << token << '\n';
-      return false;
-    }
-
-    if (!handler(value, memory, memory_set)) {
-      return false;
-    }
-  }
-
-  return true;
+void Calculator::Pow(double num) {
+    number_ = std::pow(number_, num);
 }
