@@ -46,6 +46,7 @@ private:
     double memory_;
     bool has_memory_;
     bool clear_formula_on_next_input_ = false;
+    bool number_from_memory_;
 
     void SetText(const QString &text);
     void AddText(const QString &suffix);
@@ -55,3 +56,4 @@ private:
 };
 
 #endif
+

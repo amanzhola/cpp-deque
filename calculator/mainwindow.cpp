@@ -7,7 +7,8 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow),
     current_operation_(Operation::NO_OPERATION),
-    active_number_(0.0), memory_(0.0), has_memory_(false)
+    active_number_(0.0), memory_(0.0), has_memory_(false),
+    number_from_memory_(false)
 {
     ui->setupUi(this);
 
@@ -100,6 +101,16 @@ void MainWindow::AddText(const QString &suffix) {
 void MainWindow::DigitClicked() {
     QPushButton *button = qobject_cast<QPushButton*>(sender());
 
+    if (number_from_memory_) {
+        SetText(button->text());
+        number_from_memory_ = false;
+
+        ui->l_formula->setText("");
+        clear_formula_on_next_input_ = false;
+
+        return;
+    }
+
     if (clear_formula_on_next_input_) {
         ui->l_formula->setText("");
         clear_formula_on_next_input_ = false;
@@ -114,6 +125,8 @@ void MainWindow::DigitClicked() {
 }
 
 void MainWindow::OnCommaClicked() {
+    number_from_memory_ = false;
+
     if (input_number_ == "nan" || input_number_ == "inf" || input_number_ == "-inf") return;
 
     if (!input_number_.contains('.')) {
@@ -122,7 +135,16 @@ void MainWindow::OnCommaClicked() {
 }
 
 void MainWindow::OnNegateClicked() {
-    if (input_number_ == "nan" || input_number_ == "inf" || input_number_ == "-inf") {
+    if (input_number_ == "nan" || input_number_ == "inf" || input_number_ == "-inf") return;
+
+    if (input_number_.isEmpty()) {
+        active_number_ = -active_number_;
+        SetText(QString::number(active_number_));
+        return;
+    }
+
+    if (input_number_ == "0" || input_number_ == "-0") {
+        SetText("0");
         return;
     }
 
@@ -135,6 +157,8 @@ void MainWindow::OnNegateClicked() {
 
 void MainWindow::OnBackspaceClicked() {
     if (input_number_ == "nan" || input_number_ == "inf" || input_number_ == "-inf") return;
+
+    if (number_from_memory_) return;
 
     if (!input_number_.isEmpty()) {
         QString temp = input_number_;
@@ -165,6 +189,8 @@ void MainWindow::SetOperation(Operation op) {
     input_number_.clear();
 
     clear_formula_on_next_input_ = false;
+
+    number_from_memory_ = false;
 }
 
 void MainWindow::OnOperationClicked() {
@@ -208,12 +234,16 @@ void MainWindow::OnEqualClicked() {
     }
 
     current_operation_ = Operation::NO_OPERATION;
+
+    number_from_memory_ = false;
 }
 
 void MainWindow::OnResetClicked() {
     current_operation_ = Operation::NO_OPERATION;
     ui->l_formula->clear();
     SetText("0");
+
+    number_from_memory_ = false;
 }
 
 void MainWindow::OnMemorySave() {
@@ -233,4 +263,6 @@ void MainWindow::OnMemoryRecall() {
     active_number_ = memory_;
     input_number_ = QString::number(active_number_);
     ui->l_result->setText(input_number_);
+
+    number_from_memory_ = true;
 }
