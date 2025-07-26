@@ -1,8 +1,10 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
-#include "calculator.h"
+#include <functional>
+#include <optional>
+#include <string>
+#include "enums.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -10,50 +12,44 @@ QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
-
+    
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
+    
+    // Методы для изменения UI
+    void SetInputText(const std::string& text);
+    void SetErrorText(const std::string& text);
+    void SetFormulaText(const std::string& text);
+    void SetMemText(const std::string& text);
+    void SetExtraKey(const std::optional<std::string>& key);
+    
+    // Методы для установки колбэков
+    void SetDigitKeyCallback(std::function<void(int)> cb);
+    void SetProcessOperationKeyCallback(std::function<void(Operation)> cb);
+    void SetProcessControlKeyCallback(std::function<void(ControlKey)> cb);
+    void SetControllerCallback(std::function<void(ControllerType)> cb);
+    
 private slots:
-    void DigitClicked();
-    void OnCommaClicked();
-    void OnNegateClicked();
-    void OnBackspaceClicked();
+    void OnDigitClicked();
     void OnOperationClicked();
-    void OnEqualClicked();
-    void OnResetClicked();
-    void OnMemorySave();
-    void OnMemoryClear();
-    void OnMemoryRecall();
-
+    void OnControlKeyClicked();
+    void OnExtraKeyClicked();
+    void OnControllerChanged(int index);
+    
 private:
-    enum class Operation {
-        NO_OPERATION,
-        ADDITION,
-        SUBTRACTION,
-        MULTIPLICATION,
-        DIVISION,
-        POWER
-    };
-
     Ui::MainWindow *ui;
-
-    Calculator calculator_;
-    Operation current_operation_;
-    QString input_number_;
-    double active_number_;
-    double memory_;
-    bool has_memory_;
-    bool clear_formula_on_next_input_ = false;
-    bool number_from_memory_;
-
-    void SetText(const QString &text);
-    void AddText(const QString &suffix);
-    QString NormalizeNumber(const QString &text);
-    QString OpToString(Operation op);
-    void SetOperation(Operation op);
+    
+    std::function<void(int)> digit_callback_;
+    std::function<void(Operation)> operation_callback_;
+    std::function<void(ControlKey)> control_callback_;
+    std::function<void(ControllerType)> controller_callback_;
+    
+    void ConnectSignals();
+    void SetResultColorRed();
+    void ResetResultColor();
+    
+    // Новые методы для форматирования
+    QString FormatNumberText(const QString& text);
+    QString FormatFormulaText(const QString& text);
 };
-
-#endif
-
