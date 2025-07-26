@@ -42,12 +42,31 @@ public:
     Rational operator-() const {
         return Rational(-numerator_, denominator_);
     }
+    
+    Rational operator+() const {
+        return *this;
+    }
 
     // Compound assignment
-    Rational& operator+=(const Rational& other) { return *this = *this + other; }
-    Rational& operator-=(const Rational& other) { return *this = *this - other; }
-    Rational& operator*=(const Rational& other) { return *this = *this * other; }
-    Rational& operator/=(const Rational& other) { return *this = *this / other; }
+    Rational& operator+=(const Rational& other) {
+        *this = *this + other;
+        return *this;
+    }
+
+    Rational& operator-=(const Rational& other) {
+        *this = *this - other;
+        return *this;
+    }
+
+    Rational& operator*=(const Rational& other) {
+        *this = *this * other;
+        return *this;
+    }
+
+    Rational& operator/=(const Rational& other) {
+        *this = *this / other;
+        return *this;
+    }
 
     // Сравнение
     bool operator==(const Rational& other) const {
@@ -105,4 +124,4 @@ private:
         denominator_ /= gcd;
     }
 };
-	
+

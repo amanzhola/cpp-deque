@@ -10,10 +10,16 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
 
+    InitControllerComboBox();
     ConnectSignals();
+}
 
+MainWindow::~MainWindow() {
+    delete ui;
+}
+
+void MainWindow::InitControllerComboBox() {
     ui->cmb_controller->clear();
-
     ui->cmb_controller->addItems({
         "double", "float", "uint8_t", "int", "int64_t", "size_t", "Rational"
     });
@@ -22,10 +28,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->cmb_controller, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::OnControllerChanged);
-}
-
-MainWindow::~MainWindow() {
-    delete ui;
 }
 
 QString MainWindow::FormatFormulaText(const QString& text) {
@@ -44,21 +46,19 @@ QString MainWindow::FormatFormulaText(const QString& text) {
 }
 
 QString MainWindow::FormatNumberText(const QString& text) {
-    bool okInt = false;
-    bool okDouble = false;
-    bool okUInt = false;
+    bool okInt = false, okUInt = false, okDouble = false;
 
-    qint64 valInt = text.toLongLong(&okInt);
+    const qint64 valInt = text.toLongLong(&okInt);
     if (okInt) {
         return QString::number(valInt);
     }
 
-    quint64 valUInt = text.toULongLong(&okUInt);
+    const quint64 valUInt = text.toULongLong(&okUInt);
     if (okUInt) {
         return QString::number(valUInt);
     }
 
-    double valDouble = text.toDouble(&okDouble);
+    const double valDouble = text.toDouble(&okDouble);
     if (!okDouble) {
         return text;
     }
@@ -71,7 +71,9 @@ QString MainWindow::FormatNumberText(const QString& text) {
 
     QString formatted = QString::number(valDouble, 'f', 10);
     formatted = formatted.remove(QRegularExpression("0+$"));
-    if (formatted.endsWith('.')) formatted.chop(1);
+    if (formatted.endsWith('.')) {
+        formatted.chop(1);
+    }
 
     return formatted;
 }
@@ -126,66 +128,102 @@ void MainWindow::SetControllerCallback(std::function<void(ControllerType)> cb) {
 // --- Обработчики сигналов ---
 
 void MainWindow::OnDigitClicked() {
-    if (!digit_callback_) return;
-    auto* btn = qobject_cast<QPushButton*>(sender());
-    if (!btn) return;
+    if (!digit_callback_) {
+        return;
+    }
+
+    const auto* btn = qobject_cast<QPushButton*>(sender());
+    if (!btn) {
+        return;
+    }
 
     bool ok = false;
-    int digit = btn->text().toInt(&ok);
-    if (ok)
+    const int digit = btn->text().toInt(&ok);
+    if (ok) {
         digit_callback_(digit);
-}
-
-void MainWindow::OnOperationClicked() {
-    if (!operation_callback_) return;
-    auto* btn = qobject_cast<QPushButton*>(sender());
-    if (!btn) return;
-
-    if (btn == ui->pb_add) operation_callback_(Operation::ADDITION);
-    else if (btn == ui->pb_subtract) operation_callback_(Operation::SUBTRACTION);
-    else if (btn == ui->pb_multiplicate) operation_callback_(Operation::MULTIPLICATION);
-    else if (btn == ui->pb_divide) operation_callback_(Operation::DIVISION);
-    else if (btn == ui->pb_power) operation_callback_(Operation::POWER);
-}
-
-void MainWindow::OnControlKeyClicked() {
-    if (!control_callback_) return;
-    QObject* src = sender();
-
-    if (src == ui->pb_equal) control_callback_(ControlKey::EQUALS);
-    else if (src == ui->pb_reset) control_callback_(ControlKey::CLEAR);
-    else if (src == ui->pb_ms) control_callback_(ControlKey::MEM_SAVE);
-    else if (src == ui->pb_mr) control_callback_(ControlKey::MEM_LOAD);
-    else if (src == ui->pb_mc) control_callback_(ControlKey::MEM_CLEAR);
-    else if (src == ui->pb_negate) control_callback_(ControlKey::PLUS_MINUS);
-    else if (src == ui->pb_backspace) control_callback_(ControlKey::BACKSPACE);
-}
-
-void MainWindow::OnExtraKeyClicked() {
-    if (control_callback_) {
-        control_callback_(ControlKey::EXTRA_KEY);
     }
 }
 
-void MainWindow::OnControllerChanged(int index) {
-    if (!controller_callback_) return;
+void MainWindow::OnOperationClicked() {
+    if (!operation_callback_) {
+        return;
+    }
 
-    ControllerType type = static_cast<ControllerType>(index);
+    const auto* btn = qobject_cast<QPushButton*>(sender());
+    if (!btn) {
+        return;
+    }
+
+    if (btn == ui->pb_add) {
+        operation_callback_(Operation::ADDITION);
+    } else if (btn == ui->pb_subtract) {
+        operation_callback_(Operation::SUBTRACTION);
+    } else if (btn == ui->pb_multiplicate) {
+        operation_callback_(Operation::MULTIPLICATION);
+    } else if (btn == ui->pb_divide) {
+        operation_callback_(Operation::DIVISION);
+    } else if (btn == ui->pb_power) {
+        operation_callback_(Operation::POWER);
+    }
+}
+
+void MainWindow::OnControlKeyClicked() {
+    if (!control_callback_) {
+        return;
+    }
+
+    QObject* src = sender();
+
+    if (src == ui->pb_equal) {
+        control_callback_(ControlKey::EQUALS);
+    } else if (src == ui->pb_reset) {
+        control_callback_(ControlKey::CLEAR);
+    } else if (src == ui->pb_ms) {
+        control_callback_(ControlKey::MEM_SAVE);
+    } else if (src == ui->pb_mr) {
+        control_callback_(ControlKey::MEM_LOAD);
+    } else if (src == ui->pb_mc) {
+        control_callback_(ControlKey::MEM_CLEAR);
+    } else if (src == ui->pb_negate) {
+        control_callback_(ControlKey::PLUS_MINUS);
+    } else if (src == ui->pb_backspace) {
+        control_callback_(ControlKey::BACKSPACE);
+    }
+}
+
+void MainWindow::OnExtraKeyClicked() {
+    if (!control_callback_) {
+        return;
+    }
+
+    control_callback_(ControlKey::EXTRA_KEY);
+}
+
+void MainWindow::OnControllerChanged(int index) {
+    if (!controller_callback_) {
+        return;
+    }
+
+    const ControllerType type = static_cast<ControllerType>(index);
     controller_callback_(type);
 
-    bool show_extra = (type == ControllerType::DOUBLE) || (type == ControllerType::FLOAT) || (type == ControllerType::RATIONAL);
+    const bool show_extra =
+        type == ControllerType::DOUBLE ||
+        type == ControllerType::FLOAT ||
+        type == ControllerType::RATIONAL;
+
     ui->tb_extra->setVisible(show_extra);
 }
 
 // --- Вспомогательные методы ---
 
 void MainWindow::ConnectSignals() {
-
-    QList<QPushButton*> digit_buttons = {
+    const QList<QPushButton*> digit_buttons = {
         ui->pb_zero, ui->pb_one, ui->pb_two, ui->pb_three, ui->pb_four,
         ui->pb_five, ui->pb_six, ui->pb_seven, ui->pb_eight, ui->pb_nine
     };
-    for (auto* btn : digit_buttons) {
+
+    for (QPushButton* btn : digit_buttons) {
         connect(btn, &QPushButton::clicked, this, &MainWindow::OnDigitClicked);
     }
 
@@ -194,6 +232,7 @@ void MainWindow::ConnectSignals() {
     connect(ui->pb_multiplicate, &QPushButton::clicked, this, &MainWindow::OnOperationClicked);
     connect(ui->pb_divide, &QPushButton::clicked, this, &MainWindow::OnOperationClicked);
     connect(ui->pb_power, &QPushButton::clicked, this, &MainWindow::OnOperationClicked);
+
     connect(ui->pb_equal, &QPushButton::clicked, this, &MainWindow::OnControlKeyClicked);
     connect(ui->pb_reset, &QPushButton::clicked, this, &MainWindow::OnControlKeyClicked);
     connect(ui->pb_ms, &QPushButton::clicked, this, &MainWindow::OnControlKeyClicked);
@@ -201,6 +240,7 @@ void MainWindow::ConnectSignals() {
     connect(ui->pb_mc, &QPushButton::clicked, this, &MainWindow::OnControlKeyClicked);
     connect(ui->pb_negate, &QPushButton::clicked, this, &MainWindow::OnControlKeyClicked);
     connect(ui->pb_backspace, &QPushButton::clicked, this, &MainWindow::OnControlKeyClicked);
+
     connect(ui->tb_extra, &QPushButton::clicked, this, &MainWindow::OnExtraKeyClicked);
 }
 
