@@ -3,18 +3,19 @@
 
 #include <algorithm>
 #include <random>
+#include <functional> // review value -> std::less (D🙏)
 
 namespace {
-    static constexpr int kMaxDequeSize = 1000;
+static constexpr int kMaxDequeSize = 1000;
 
-    template <class ModelT>
-    inline void moveCursorToBeginOrEnd(ModelT& model) {
-        if (model.items.empty()) {
-            model.toEnd();
-        } else {
-            model.toBegin();
-        }
+template <class ModelT>
+inline void moveCursorToBeginOrEnd(ModelT& model) {
+    if (model.items.empty()) {
+        model.toEnd();
+    } else {
+        model.toBegin();
     }
+}
 }
 
 const std::deque<QString> MainWindow::tea = {
@@ -29,7 +30,7 @@ const std::deque<QString> MainWindow::cakes = {
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),
-      ui(new Ui::MainWindow) {
+    ui(new Ui::MainWindow) {
     ui->setupUi(this);
     applyModel();
 }
@@ -40,26 +41,19 @@ MainWindow::~MainWindow() {
 
 // Текущий компаратор по режиму сортировки
 MainWindow::Cmp MainWindow::currentComp() const {
-    static auto caseSensitiveLess = [](const QString& a, const QString& b) {
-        return a < b; // лексикографически, case-sensitive
-    };
-
     static auto caseInsensitiveLess = [](const QString& a, const QString& b) {
         return a.compare(b, Qt::CaseInsensitive) < 0;
     };
 
     switch (sortMode_) {
-        case SortMode::CaseInsensitive: {
-            return caseInsensitiveLess;
-        }
-        case SortMode::CaseSensitive: {
-            return caseSensitiveLess;
-        }
-        case SortMode::None: {
-            return caseSensitiveLess; // дефолт
-        }
+    case SortMode::CaseInsensitive:
+        return caseInsensitiveLess;      // свой компаратор (CI)
+    case SortMode::CaseSensitive:
+        return std::less<QString>{};     // стандартный (CS😉)
+    case SortMode::None:
+    default:
+        return std::less<QString>{};     // дефолт CS😉)
     }
-    return caseSensitiveLess;
 }
 
 void MainWindow::applyModel() {
@@ -77,8 +71,8 @@ void MainWindow::applyModel() {
     deque_model_.clamp();
 
     const int currentRowIndex = deque_model_.atEnd()
-        ? static_cast<int>(deque_model_.items.size())
-        : static_cast<int>(deque_model_.pos);
+                                    ? static_cast<int>(deque_model_.items.size())
+                                    : static_cast<int>(deque_model_.pos);
 
     ui->list_widget->setCurrentRow(currentRowIndex);
 
@@ -105,8 +99,8 @@ void MainWindow::applyIterator() {
 
     // синхронизация выделения
     const int currentRowIndex = atEnd
-        ? static_cast<int>(deque_model_.items.size())
-        : static_cast<int>(deque_model_.pos);
+                                    ? static_cast<int>(deque_model_.items.size())
+                                    : static_cast<int>(deque_model_.pos);
 
     if (ui->list_widget->currentRow() != currentRowIndex) {
         ui->list_widget->setCurrentRow(currentRowIndex);
@@ -120,10 +114,11 @@ void MainWindow::updateControls() {
     ui->btn_pop_back->setEnabled(!isEmpty);
     ui->btn_erase->setEnabled(!isEmpty && !deque_model_.atEnd());
 
-    const bool isSorted = (sortMode_ != SortMode::None) && !isEmpty;
-    ui->btn_lower_bound->setEnabled(isSorted);
-    ui->btn_upper_bound->setEnabled(isSorted);
-    ui->btn_unique->setEnabled(isSorted);
+    // мимикрия
+    ui->btn_lower_bound->setEnabled(true);
+    ui->btn_upper_bound->setEnabled(true);
+    ui->btn_unique->setEnabled(true);
+
 }
 
 // === Базовые операции ===
@@ -188,8 +183,8 @@ void MainWindow::on_btn_insert_clicked() {
     }
 
     const size_t insertIndex = deque_model_.atEnd()
-        ? deque_model_.items.size()
-        : deque_model_.pos;
+                                   ? deque_model_.items.size()
+                                   : deque_model_.pos;
 
     auto it = deque_model_.items.begin();
     std::advance(it, static_cast<long>(insertIndex));
@@ -248,8 +243,8 @@ void MainWindow::on_btn_prev_clicked() {
 }
 
 void MainWindow::on_btn_next_clicked() {
-    if (!deque_model_.atEnd() && deque_model_.pos + 1 <= deque_model_.items.size()) {
-        ++deque_model_.pos; // может стать end()
+    if (!deque_model_.atEnd()) {
+        ++deque_model_.pos;
         applyIterator();
     }
 }
@@ -305,8 +300,8 @@ void MainWindow::on_btn_reverse_clicked() {
 
     // сохраняем индекс
     const size_t savedIndex = deque_model_.atEnd()
-        ? deque_model_.items.size()
-        : deque_model_.pos;
+                                  ? deque_model_.items.size()
+                                  : deque_model_.pos;
 
     std::reverse(deque_model_.items.begin(), deque_model_.items.end());
     sortMode_ = SortMode::None;
@@ -322,8 +317,8 @@ void MainWindow::on_btn_shuffle_clicked() {
 
     // сохраняем индекс
     const size_t savedIndex = deque_model_.atEnd()
-        ? deque_model_.items.size()
-        : deque_model_.pos;
+                                  ? deque_model_.items.size()
+                                  : deque_model_.pos;
 
     std::shuffle(deque_model_.items.begin(), deque_model_.items.end(), random_gen_);
     sortMode_ = SortMode::None;
@@ -360,41 +355,28 @@ void MainWindow::on_btn_count_clicked() {
 
     const int countValue = static_cast<int>(
         std::count(deque_model_.items.begin(), deque_model_.items.end(), key)
-    );
+        );
 
     ui->lbl_count->setText(QString::number(countValue));
     // курсор не трогаем
 }
 
 void MainWindow::on_btn_min_element_clicked() {
-    if (deque_model_.items.empty()) {
-        return;
-    }
-
-    auto it = std::min_element(
-        deque_model_.items.begin(),
-        deque_model_.items.end(),
-        [](const QString& a, const QString& b) { return a < b; }
-    );
-
+    if (deque_model_.items.empty()) return;
+    auto less = currentComp();
+    auto it = std::min_element(deque_model_.items.begin(), deque_model_.items.end(), less); // станд (CS😉)
     deque_model_.pos = static_cast<size_t>(std::distance(deque_model_.items.begin(), it));
     applyModel();
 }
 
 void MainWindow::on_btn_max_element_clicked() {
-    if (deque_model_.items.empty()) {
-        return;
-    }
-
-    auto it = std::max_element(
-        deque_model_.items.begin(),
-        deque_model_.items.end(),
-        [](const QString& a, const QString& b) { return a < b; }
-    );
-
+    if (deque_model_.items.empty()) return;
+    auto less = currentComp();
+    auto it = std::max_element(deque_model_.items.begin(), deque_model_.items.end(), less); // станд (CS😉)
     deque_model_.pos = static_cast<size_t>(std::distance(deque_model_.items.begin(), it));
     applyModel();
 }
+
 
 // === Сортировка и производные операции ===
 

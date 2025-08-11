@@ -1,53 +1,41 @@
 #pragma once
 
 #include <deque>
+#include <algorithm>   // std::merge
+#include <iterator>    // std::back_inserter
+#include <functional> // std::ref (обертка для тестов)
 
 template<class T, class Comp>
-std::deque<T> Merge(const std::deque<T>& half1, const std::deque<T>& half2, const Comp& comparator) {
+std::deque<T> Merge(const std::deque<T>& half1,
+                    const std::deque<T>& half2,
+                    const Comp& comparator)
+{
     std::deque<T> result;
-    size_t i = 0, j = 0;
-
-    // Слияние двух отсортированных частей
-    while (i < half1.size() && j < half2.size()) {
-        if (comparator(half1[i], half2[j])) {
-            result.push_back(half1[i]);
-            ++i;
-        } else {
-            result.push_back(half2[j]);
-            ++j;
-        }
-    }
-
-    // Добавляем оставшиеся элементы из первой половины
-    while (i < half1.size()) {
-        result.push_back(half1[i]);
-        ++i;
-    }
-
-    // Добавляем оставшиеся элементы из второй половины
-    while (j < half2.size()) {
-        result.push_back(half2[j]);
-        ++j;
-    }
-
+    // Стабильное слияние двух отсортированных диапазонов при помощи итераторов
+    std::merge(half1.begin(), half1.end(),
+               half2.begin(), half2.end(),
+               std::back_inserter(result),
+               std::ref(comparator)); // 🧪 для тестов
     return result;
 }
 
 template<class T, class Comp>
-std::deque<T> MergeSort(const std::deque<T>& src, const Comp& comparator) {
+std::deque<T> MergeSort(const std::deque<T>& src,
+                        const Comp& comparator)
+{
     if (src.size() <= 1) {
-        return src;
+        return src; // базовый случай
     }
 
-    const size_t mid = src.size() / 2;
+    const auto mid_it = src.begin() + static_cast<std::ptrdiff_t>(src.size() / 2);
 
-    std::deque<T> left_sorted(src.begin(), src.begin() + mid);
-    std::deque<T> right_sorted(src.begin() + mid, src.end());
+    // Рекурсивно сортируем левую и правую части (конструируя их из диапазонов)
+    std::deque<T> left (src.begin(), mid_it);
+    std::deque<T> right(mid_it,       src.end());
 
-    // Рекурсивный вызов для сортировки левой и правой части
-    left_sorted = MergeSort(left_sorted, comparator);
-    right_sorted = MergeSort(right_sorted, comparator);
+    left  = MergeSort(left,  comparator);
+    right = MergeSort(right, comparator);
 
-    // Слияние отсортированных частей
-    return Merge(left_sorted, right_sorted, comparator);
+    // Сливаем отсортированные половины
+    return Merge(left, right, comparator);
 }
